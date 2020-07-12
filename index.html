@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <title>document</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body>
+    <div id="root">
+      <input type="file" id="selectFile" />
+    </div>
+    <script>
+      let flag = false;
+      let socket = new WebSocket('ws://localhost:8080');
+      socket.onopen = function() {
+        console.log('open');
+        flag = true;
+      };
+      socket.onmessage = function(ev) {
+        console.log(ev.data);
+      };
+      socket.onerror = function(err) {
+        console.log(err);
+      };
+      socket.onclose = function(e) {
+        console.log(e);
+      };
+      selectFile.onchange = function(e) {
+        let file = e.target.files[0];
+        let nameArray = file.name.split('.');
+        let extName = nameArray[nameArray.length - 1];
+        let fr = new FileReader();
+        fr.readAsArrayBuffer(file);
+        fr.onload = e => {
+          if (flag) {
+            let extNameArray = extName.split('');
+            let ab1 = new ArrayBuffer(4);
+            let view1 = new Uint8Array(ab1);
+            for (const index of extNameArray.keys()) {
+              view1[index] = extName.charCodeAt(index);
+            }
+            let ab2 = e.target.result;
+            let view2 = new Uint8Array(ab2);
+            let view = new Uint8Array([...view1, ...view2]);
+            socket.send(view);
+          } else {
+            console.log('websocket尚未连接');
+          }
+        };
+      };
+    </script>
+  </body>
+</html>
